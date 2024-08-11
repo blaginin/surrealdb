@@ -88,7 +88,7 @@ pub trait RpcContext {
 		// For both ns+db, string = change, null = unset, none = do nothing
 		// We need to be able to adjust either ns or db without affecting the other
 		// To be able to select a namespace, and then list resources in that namespace, as an example
-		let (ns, db) = params.needs_two()?;
+		let (ns, db, session) = params.needs_two_or_three()?;
 		let unset_ns = matches!(ns, Value::Null);
 		let unset_db = matches!(db, Value::Null);
 
@@ -107,6 +107,10 @@ pub trait RpcContext {
 			self.session_mut().db = None;
 		} else if let Value::Strand(db) = db {
 			self.session_mut().db = Some(db.0);
+		}
+
+		if let Value::Strand(session) = session {
+			self.session_mut().id = Some(session.0);
 		}
 
 		Ok(Value::None)

@@ -19,7 +19,7 @@ const MAX_NOTIFICATIONS: usize = 100;
 async fn live_select_table() {
 	let (permit, db) = new_db().await;
 
-	db.use_ns(NS).use_db(Ulid::new().to_string()).await.unwrap();
+	db.use_ns(NS).use_db(Ulid::new().to_string()).use_session("some_session_id").await.unwrap();
 
 	{
 		let table = format!("table_{}", Ulid::new());
@@ -43,6 +43,8 @@ async fn live_select_table() {
 		assert_eq!(created, vec![notification.data.clone()]);
 		// It should be newly created
 		assert_eq!(notification.action, Action::Create);
+		// The session should match the one we set
+		assert_eq!(notification.session, Some("some_session_id".to_string()));
 
 		// Update the record
 		let _: Option<RecordId> =
@@ -52,6 +54,8 @@ async fn live_select_table() {
 			tokio::time::timeout(LQ_TIMEOUT, users.next()).await.unwrap().unwrap().unwrap();
 		// It should be updated
 		assert_eq!(notification.action, Action::Update);
+		// The session should match the one we set
+		assert_eq!(notification.session, Some("some_session_id".to_string()));
 
 		// Delete the record
 		let _: Option<RecordId> = db.delete(&notification.data.id).await.unwrap();
@@ -59,6 +63,8 @@ async fn live_select_table() {
 		let notification: Notification<RecordId> = users.next().await.unwrap().unwrap();
 		// It should be deleted
 		assert_eq!(notification.action, Action::Delete);
+		// The session should match the one we set
+		assert_eq!(notification.session, Some("some_session_id".to_string()));
 	}
 
 	{
@@ -440,4 +446,47 @@ async fn receive_all_pending_notifications<
 	.await;
 	assert!(we_expect_timeout.is_err());
 	results
+}
+
+#[test_log::test(tokio::test)]
+async fn live_with_different_sessions() {
+	let (_, db) = new_db().await;
+
+	db.use_ns(NS).use_db(Ulid::new().to_string()).use_session("session_1").await.unwrap();
+
+	let table = format!("table_{}", Ulid::new());
+	if FFLAGS.change_feed_live_queries.enabled() {
+		db.query(format!("DEFINE TABLE {table} CHANGEFEED 10m INCLUDE ORIGINAL")).await.unwrap();
+	} else {
+		db.query(format!("DEFINE TABLE {table}")).await.unwrap();
+	}
+
+	info!("Starting live query");
+	let users: QueryStream<Notification<RecordId>> = db
+		.query(format!("LIVE SELECT * FROM {table}"))
+		.await
+		.unwrap()
+		.stream::<Notification<_>>(0)
+		.unwrap();
+	let users = Arc::new(RwLock::new(users));
+
+	// Create a record
+	let created: Vec<RecordId> = db.create(&table).await.unwrap();
+
+	// Pull the notification
+	let notifications = receive_all_pending_notifications(users.clone(), LQ_TIMEOUT).await;
+
+	assert_eq!(notifications.len(), 1);
+	// The session should match the one we set
+	assert_eq!(notifications[0].session, Some("session_1".to_string()));
+
+	// change the session
+	db.use_ns(NS).use_db(Ulid::new().to_string()).use_session("session_2").await.unwrap();
+
+	// Create a record
+	let created: Vec<RecordId> = db.create(&table).await.unwrap();
+
+	// Now notifications should not arrive
+	let notifications = receive_all_pending_notifications(users.clone(), LQ_TIMEOUT).await;
+	assert_eq!(notifications.len(), 0);
 }

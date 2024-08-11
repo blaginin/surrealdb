@@ -496,12 +496,16 @@ async fn router(
 		Command::Use {
 			namespace,
 			database,
+			session_id,
 		} => {
 			if let Some(ns) = namespace {
 				session.ns = Some(ns);
 			}
 			if let Some(db) = database {
 				session.db = Some(db);
+			}
+			if let Some(id) = session_id {
+				session.id = Some(id);
 			}
 			Ok(DbResponse::Other(Value::None))
 		}

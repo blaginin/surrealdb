@@ -130,6 +130,10 @@ pub enum Error {
 	#[error("Invalid database name: {0:?}")]
 	InvalidDbName(String),
 
+	/// Invalid session id
+	#[error("Invalid session id: {0:?}")]
+	InvalidSessionId(String),
+
 	/// File open error
 	#[error("Failed to open `{path}`: {error}")]
 	FileOpen {

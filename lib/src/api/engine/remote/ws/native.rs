@@ -206,8 +206,10 @@ async fn router_handle_route(
 			state.live_queries.remove(uuid);
 		}
 		Command::Use {
+			ref session_id,
 			..
 		} => {
+			state.session_id = session_id.to_owned();
 			state.replay.insert(ReplayMethod::Use, command.clone());
 		}
 		Command::Signup {
@@ -331,8 +333,22 @@ async fn router_handle_response(
 								let live_query_id = notification.id;
 								// Check if this live query is registered
 								if let Some(sender) = state.live_queries.get(&live_query_id) {
+									// Check if the received session ID matches the current session ID
+									let incorrect_session =
+										notification.session.as_ref().map_or(false, |session_id| {
+											if state.session_id.as_deref()
+												!= Some(session_id.as_str())
+											{
+												warn!("Received notification for live query with {} session ID, but the current session ID is {}", session_id, state.session_id.as_deref().unwrap_or("None"));
+												true
+											} else {
+												false
+											}
+										});
+
 									// Send the notification back to the caller or kill live query if the receiver is already dropped
-									if sender.send(notification).await.is_err() {
+									if incorrect_session || sender.send(notification).await.is_err()
+									{
 										state.live_queries.remove(&live_query_id);
 										let kill = {
 											let request = Command::Kill {

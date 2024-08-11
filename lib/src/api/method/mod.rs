@@ -47,13 +47,13 @@ mod signup;
 mod unset;
 mod update;
 mod upsert;
-mod use_db;
-mod use_ns;
+mod r#use;
 mod version;
 
 #[cfg(test)]
 mod tests;
 
+use crate::method::r#use::Use;
 pub use authenticate::Authenticate;
 #[doc(hidden)] // Not supported yet
 pub use begin::Begin;
@@ -85,8 +85,6 @@ use tokio::sync::watch;
 pub use unset::Unset;
 pub use update::Update;
 pub use upsert::Upsert;
-pub use use_db::UseDb;
-pub use use_ns::UseNs;
 pub use version::Version;
 
 /// A alias for an often used type of future returned by async methods in this library.
@@ -263,10 +261,12 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn use_ns(&self, ns: impl Into<String>) -> UseNs<C> {
-		UseNs {
+	pub fn use_ns(&self, ns: impl Into<String>) -> Use<C> {
+		Use {
 			client: Cow::Borrowed(self),
-			ns: ns.into(),
+			ns: Some(ns.into()),
+			db: None,
+			session: None,
 		}
 	}
 
@@ -282,11 +282,33 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn use_db(&self, db: impl Into<String>) -> UseDb<C> {
-		UseDb {
+	pub fn use_db(&self, db: impl Into<String>) -> Use<C> {
+		Use {
 			client: Cow::Borrowed(self),
 			ns: None,
-			db: db.into(),
+			db: Some(db.into()),
+			session: None,
+		}
+	}
+
+	/// Set a session id
+	///
+	/// # Examples
+	///
+	/// ```no_run
+	/// # #[tokio::main]
+	/// # async fn main() -> surrealdb::Result<()> {
+	/// # let db = surrealdb::engine::any::connect("mem://").await?;
+	/// db.set_session("database").await?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn set_session(&self, session: impl Into<String>) -> Use<C> {
+		Use {
+			client: Cow::Borrowed(self),
+			ns: None,
+			db: None,
+			session: Some(session.into()),
 		}
 	}
 

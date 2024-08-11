@@ -10,8 +10,8 @@ use crate::iam::ResourceKind;
 use crate::kvs::Transaction;
 use crate::kvs::TransactionType;
 use crate::kvs::{Datastore, LockType::*, TransactionType::*};
-use crate::sql::paths::DB;
 use crate::sql::paths::NS;
+use crate::sql::paths::{DB, ID};
 use crate::sql::query::Query;
 use crate::sql::statement::Statement;
 use crate::sql::value::Value;
@@ -180,6 +180,12 @@ impl<'a> Executor<'a> {
 		opt.set_db(Some(db.into()));
 	}
 
+	async fn set_session_id(&self, ctx: &mut Context<'_>, opt: &mut Options, id: &str) {
+		let mut session = ctx.value("session").unwrap_or(&Value::None).clone();
+		session.put(ID.as_ref(), id.to_owned().into());
+		ctx.add_value("session", session);
+	}
+
 	#[instrument(level = "debug", name = "executor", skip_all)]
 	pub async fn execute(
 		&mut self,
@@ -277,6 +283,9 @@ impl<'a> Executor<'a> {
 					}
 					if let Some(ref db) = stm.db {
 						self.set_db(&mut ctx, &mut opt, db).await;
+					}
+					if let Some(ref id) = stm.session {
+						self.set_session_id(&mut ctx, &mut opt, id).await;
 					}
 					Ok(Value::None)
 				}

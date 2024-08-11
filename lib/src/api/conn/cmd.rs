@@ -18,6 +18,7 @@ pub(crate) enum Command {
 	Use {
 		namespace: Option<String>,
 		database: Option<String>,
+		session_id: Option<String>,
 	},
 	Signup {
 		credentials: Object,
@@ -109,10 +110,14 @@ impl Command {
 			Command::Use {
 				namespace,
 				database,
+				session_id,
 			} => RouterRequest {
 				id,
 				method: Value::from("use"),
-				params: Some(vec![Value::from(namespace), Value::from(database)].into()),
+				params: Some(
+					vec![Value::from(namespace), Value::from(database), Value::from(session_id)]
+						.into(),
+				),
 			},
 			Command::Signup {
 				credentials,

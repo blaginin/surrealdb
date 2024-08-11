@@ -17,10 +17,10 @@ use crate::api::Result;
 use crate::api::Surreal;
 use crate::dbs::Status;
 use crate::engine::value_to_values;
-use crate::headers::AUTH_DB;
 use crate::headers::AUTH_NS;
 use crate::headers::DB;
 use crate::headers::NS;
+use crate::headers::{AUTH_DB, ID};
 use crate::method::Stats;
 use crate::opt::IntoEndpoint;
 use crate::sql::from_value;
@@ -354,6 +354,7 @@ async fn router(
 		Command::Use {
 			namespace,
 			database,
+			session_id,
 		} => {
 			let path = base_url.join(SQL_PATH)?;
 			let mut request = client.post(path).headers(headers.clone());
@@ -381,6 +382,20 @@ async fn router(
 				},
 				None => None,
 			};
+
+			let session = match session_id {
+				Some(session_id) => match HeaderValue::try_from(&session_id) {
+					Ok(session_id) => {
+						request = request.header(&ID, &session_id);
+						Some(session_id)
+					}
+					Err(_) => {
+						return Err(Error::InvalidSessionId(session_id).into());
+					}
+				},
+				None => None,
+			};
+
 			request = request.auth(auth).body("RETURN true");
 			take(true, request).await?;
 			if let Some(ns) = ns {
@@ -388,6 +403,9 @@ async fn router(
 			}
 			if let Some(db) = db {
 				headers.insert(&DB, db);
+			}
+			if let Some(session_id) = session {
+				headers.insert(&ID, session_id);
 			}
 			Ok(DbResponse::Other(Value::None))
 		}

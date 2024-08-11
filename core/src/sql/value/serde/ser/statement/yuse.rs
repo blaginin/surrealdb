@@ -38,6 +38,7 @@ impl ser::Serializer for Serializer {
 pub struct SerializeUseStatement {
 	ns: Option<String>,
 	db: Option<String>,
+	session: Option<String>,
 }
 
 impl serde::ser::SerializeStruct for SerializeUseStatement {
@@ -55,6 +56,9 @@ impl serde::ser::SerializeStruct for SerializeUseStatement {
 			"db" => {
 				self.db = value.serialize(ser::string::opt::Serializer.wrap())?;
 			}
+			"session" => {
+				self.session = value.serialize(ser::string::opt::Serializer.wrap())?;
+			}
 			key => {
 				return Err(Error::custom(format!("unexpected field `UseStatement::{key}`")));
 			}
@@ -66,6 +70,7 @@ impl serde::ser::SerializeStruct for SerializeUseStatement {
 		Ok(UseStatement {
 			ns: self.ns,
 			db: self.db,
+			session: self.session,
 		})
 	}
 }
@@ -102,10 +107,11 @@ mod tests {
 	}
 
 	#[test]
-	fn with_both() {
+	fn with_all() {
 		let stmt = UseStatement {
 			ns: Some("ns".to_owned()),
 			db: Some("db".to_owned()),
+			session: Some("session".to_owned()),
 		};
 		let value: UseStatement = stmt.serialize(Serializer.wrap()).unwrap();
 		assert_eq!(value, stmt);

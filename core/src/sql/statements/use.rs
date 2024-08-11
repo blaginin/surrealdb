@@ -5,13 +5,15 @@ use std::fmt;
 
 use crate::sql::escape::escape_ident;
 
-#[revisioned(revision = 1)]
+#[revisioned(revision = 2)]
 #[derive(Clone, Debug, Default, Eq, PartialEq, PartialOrd, Serialize, Deserialize, Store, Hash)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[non_exhaustive]
 pub struct UseStatement {
 	pub ns: Option<String>,
 	pub db: Option<String>,
+	#[revision(start = 2)]
+	pub session: Option<String>,
 }
 
 impl fmt::Display for UseStatement {
@@ -24,6 +26,10 @@ impl fmt::Display for UseStatement {
 		if let Some(ref db) = self.db {
 			let db = escape_ident(db);
 			write!(f, " DB {db}")?;
+		}
+		if let Some(ref session) = self.session {
+			let session = escape_ident(session);
+			write!(f, " SESSION {session}")?;
 		}
 		Ok(())
 	}

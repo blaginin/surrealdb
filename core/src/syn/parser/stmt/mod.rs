@@ -1,6 +1,8 @@
 use reblessive::Stk;
 
+use super::{mac::expected, ParseResult, Parser};
 use crate::enter_query_recursion;
+use crate::fnc::session;
 use crate::sql::block::Entry;
 use crate::sql::statements::rebuild::{RebuildIndexStatement, RebuildStatement};
 use crate::sql::statements::show::{ShowSince, ShowStatement};
@@ -22,8 +24,6 @@ use crate::{
 	},
 	syn::parser::mac::unexpected,
 };
-
-use super::{mac::expected, ParseResult, Parser};
 
 mod alter;
 mod create;
@@ -411,7 +411,7 @@ impl Parser<'_> {
 	/// # Parser State
 	/// Expects `USE` to already be consumed.
 	fn parse_use_stmt(&mut self) -> ParseResult<UseStatement> {
-		let (ns, db) = match self.peek_kind() {
+		let (ns, db, session) = match self.peek_kind() {
 			t!("NAMESPACE") | t!("ns") => {
 				self.pop_peek();
 				let ns = self.next_token_value::<Ident>()?.0;
@@ -420,19 +420,41 @@ impl Parser<'_> {
 					.then(|| self.next_token_value::<Ident>())
 					.transpose()?
 					.map(|x| x.0);
-				(Some(ns), db)
+
+				let session = self
+					.eat(t!("SESSION"))
+					.then(|| self.next_token_value::<Ident>())
+					.transpose()?
+					.map(|x| x.0);
+
+				(Some(ns), db, session)
 			}
 			t!("DATABASE") => {
 				self.pop_peek();
 				let db = self.next_token_value::<Ident>()?;
-				(None, Some(db.0))
+
+				let session = self
+					.eat(t!("SESSION"))
+					.then(|| self.next_token_value::<Ident>())
+					.transpose()?
+					.map(|x| x.0);
+
+				(None, Some(db.0), session)
 			}
-			x => unexpected!(self, x, "either DATABASE or NAMESPACE"),
+
+			t!("SESSION") => {
+				self.pop_peek();
+				let session = self.next_token_value::<Ident>()?;
+				(None, None, Some(session.0))
+			}
+
+			x => unexpected!(self, x, "either DATABASE, NAMESPACE, or SESSION"),
 		};
 
 		Ok(UseStatement {
 			ns,
 			db,
+			session,
 		})
 	}
 

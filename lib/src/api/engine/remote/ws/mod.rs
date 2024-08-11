@@ -85,6 +85,8 @@ struct RouterState<Sink, Stream> {
 	sink: Sink,
 	/// The stream from which messages are recieved from surrealdb
 	stream: Stream,
+	/// The current session id
+	session_id: Option<String>,
 }
 
 impl<Sink, Stream> RouterState<Sink, Stream> {
@@ -97,6 +99,7 @@ impl<Sink, Stream> RouterState<Sink, Stream> {
 			last_activity: Instant::now(),
 			sink,
 			stream,
+			session_id: None,
 		}
 	}
 }

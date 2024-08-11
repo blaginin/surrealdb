@@ -8,6 +8,7 @@ pub trait Take {
 	fn needs_two(self) -> Result<(Value, Value), RpcError>;
 	fn needs_three(self) -> Result<(Value, Value, Value), RpcError>;
 	fn needs_one_or_two(self) -> Result<(Value, Value), RpcError>;
+	fn needs_two_or_three(self) -> Result<(Value, Value, Value), RpcError>;
 	fn needs_one_two_or_three(self) -> Result<(Value, Value, Value), RpcError>;
 	fn needs_three_or_four(self) -> Result<(Value, Value, Value, Value), RpcError>;
 }
@@ -59,6 +60,19 @@ impl Take for Array {
 			(_, _) => Ok((Value::None, Value::None)),
 		}
 	}
+
+	fn needs_two_or_three(self) -> Result<(Value, Value, Value), RpcError> {
+		if self.len() < 2 || self.len() > 3 {
+			return Err(RpcError::InvalidParams);
+		}
+		let mut x = self.into_iter();
+		match (x.next(), x.next(), x.next()) {
+			(Some(a), Some(b), Some(c)) => Ok((a, b, c)),
+			(Some(a), Some(b), None) => Ok((a, b, Value::None)),
+			(_, _, _) => Ok((Value::None, Value::None, Value::None)),
+		}
+	}
+
 	/// Convert the array to three arguments
 	fn needs_one_two_or_three(self) -> Result<(Value, Value, Value), RpcError> {
 		if self.is_empty() || self.len() > 3 {

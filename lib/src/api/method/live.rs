@@ -208,6 +208,7 @@ impl futures::Stream for Stream<Value> {
 			query_id: notification.id.0,
 			action: notification.action.into(),
 			data: notification.result,
+			session: notification.session,
 		}))
 	}
 }
@@ -220,6 +221,7 @@ macro_rules! poll_next_and_convert {
 					data,
 					query_id: notification.id.0,
 					action: notification.action.into(),
+					session: notification.session,
 				}))),
 				Err(error) => Poll::Ready(Some(Err(error.into()))),
 			}
