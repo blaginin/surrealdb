@@ -119,6 +119,7 @@ async fn check_auth(parts: &mut Parts) -> Result<Session, Error> {
 	session.id = id;
 	session.ns = ns;
 	session.db = db;
+	// todo: pass ns here
 
 	// If Basic authentication data was supplied
 	if let Ok(au) = parts.extract::<TypedHeader<Authorization<Basic>>>().await {

@@ -183,6 +183,7 @@ impl<'a> Executor<'a> {
 	async fn set_session_id(&self, ctx: &mut Context<'_>, opt: &mut Options, id: &str) {
 		let mut session = ctx.value("session").unwrap_or(&Value::None).clone();
 		session.put(ID.as_ref(), id.to_owned().into());
+		println!("Setting session ID: {}, session: {:?}", id, session);
 		ctx.add_value("session", session);
 	}
 

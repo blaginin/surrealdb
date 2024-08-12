@@ -188,6 +188,7 @@ pub async fn init(
 			Ok(query) => {
 				let mut namespace = None;
 				let mut database = None;
+				let mut session_id = None;
 				let mut vars = Vec::new();
 				// Capture `use` and `set/let` statements from the query
 				for statement in query.iter() {
@@ -198,6 +199,9 @@ pub async fn init(
 							}
 							if let Some(db) = &stmt.db {
 								database = Some(db.clone());
+							}
+							if let Some(session) = &stmt.session {
+								session_id = Some(session.clone());
 							}
 						}
 						Statement::Set(stmt) => {
@@ -228,7 +232,7 @@ pub async fn init(
 					let _ = client.set(key, value).await;
 				}
 				// Process the last `use` statements, if any
-				if namespace.is_some() || database.is_some() {
+				if namespace.is_some() || database.is_some() || session_id.is_some() {
 					// Use the namespace provided in the query if any, otherwise use the one in the prompt
 					let namespace = namespace.as_deref().unwrap_or(prompt_ns);
 					// Use the database provided in the query if any, otherwise use the one in the prompt
@@ -236,12 +240,34 @@ pub async fn init(
 					// If the database is empty we should only use the namespace
 					if database.is_empty() {
 						if client.use_ns(namespace).await.is_ok() {
-							prompt = format!("{namespace}> ");
+							if let Some(ref session_id) = session_id {
+								if client.set_session(session_id).await.is_ok() {
+									prompt = format!("{namespace} ({session_id})> ");
+								} else {
+									prompt = format!("{namespace}> ");
+								}
+							} else {
+								prompt = format!("{namespace}> ");
+							}
 						}
 					}
 					// Otherwise we should use both the namespace and database
 					else if client.use_ns(namespace).use_db(database).await.is_ok() {
-						prompt = format!("{namespace}/{database}> ");
+						if let Some(ref session_id) = session_id {
+							if client.set_session(session_id).await.is_ok() {
+								prompt = format!("{namespace}/{database} ({session_id})> ");
+							} else {
+								prompt = format!("{namespace}/{database}> ");
+							}
+						} else {
+							prompt = format!("{namespace}/{database}> ");
+						}
+					}
+					// or session can be set
+					else if let Some(ref session_id) = session_id {
+						if client.set_session(session_id).await.is_ok() {
+							prompt = format!("({session_id})> ");
+						}
 					}
 				}
 			}

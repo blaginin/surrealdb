@@ -658,6 +658,8 @@ impl Datastore {
 		sess: &Session,
 		vars: Variables,
 	) -> Result<Vec<Response>, Error> {
+		println!("session:::: {:?}", sess);
+
 		// Check if the session has expired
 		if sess.expired() {
 			return Err(Error::ExpiredSession);

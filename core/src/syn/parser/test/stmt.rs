@@ -1955,6 +1955,7 @@ fn parse_use() {
 	let expect = Statement::Use(UseStatement {
 		ns: Some("foo".to_owned()),
 		db: None,
+		session: None,
 	});
 	assert_eq!(res, expect);
 
@@ -1962,6 +1963,7 @@ fn parse_use() {
 	let expect = Statement::Use(UseStatement {
 		ns: None,
 		db: Some("foo".to_owned()),
+		session: None,
 	});
 	assert_eq!(res, expect);
 
@@ -1969,6 +1971,31 @@ fn parse_use() {
 	let expect = Statement::Use(UseStatement {
 		ns: Some("bar".to_owned()),
 		db: Some("foo".to_owned()),
+		session: None,
+	});
+	assert_eq!(res, expect);
+
+	let res = test_parse!(parse_stmt, r"USE SESSION foo").unwrap();
+	let expect = Statement::Use(UseStatement {
+		ns: None,
+		db: None,
+		session: Some("foo".to_owned()),
+	});
+	assert_eq!(res, expect);
+
+	let res = test_parse!(parse_stmt, r"USE NS bar DB foo SESSION baz").unwrap();
+	let expect = Statement::Use(UseStatement {
+		ns: Some("bar".to_owned()),
+		db: Some("foo".to_owned()),
+		session: Some("baz".to_owned()),
+	});
+	assert_eq!(res, expect);
+
+	let res = test_parse!(parse_stmt, r"USE NS bar SESSION baz").unwrap();
+	let expect = Statement::Use(UseStatement {
+		ns: Some("bar".to_owned()),
+		db: None,
+		session: Some("baz".to_owned()),
 	});
 	assert_eq!(res, expect);
 }
@@ -1979,6 +2006,7 @@ fn parse_use_lowercase() {
 	let expect = Statement::Use(UseStatement {
 		ns: Some("foo".to_owned()),
 		db: None,
+		session: None,
 	});
 	assert_eq!(res, expect);
 
@@ -1986,6 +2014,7 @@ fn parse_use_lowercase() {
 	let expect = Statement::Use(UseStatement {
 		ns: None,
 		db: Some("foo".to_owned()),
+		session: None,
 	});
 	assert_eq!(res, expect);
 
@@ -1993,6 +2022,7 @@ fn parse_use_lowercase() {
 	let expect = Statement::Use(UseStatement {
 		ns: Some("bar".to_owned()),
 		db: Some("foo".to_owned()),
+		session: None,
 	});
 	assert_eq!(res, expect);
 }
