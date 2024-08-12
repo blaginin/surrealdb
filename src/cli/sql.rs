@@ -241,7 +241,7 @@ pub async fn init(
 					if database.is_empty() {
 						if client.use_ns(namespace).await.is_ok() {
 							if let Some(ref session_id) = session_id {
-								if client.set_session(session_id).await.is_ok() {
+								if client.use_session(session_id).await.is_ok() {
 									prompt = format!("{namespace} ({session_id})> ");
 								} else {
 									prompt = format!("{namespace}> ");
@@ -254,7 +254,7 @@ pub async fn init(
 					// Otherwise we should use both the namespace and database
 					else if client.use_ns(namespace).use_db(database).await.is_ok() {
 						if let Some(ref session_id) = session_id {
-							if client.set_session(session_id).await.is_ok() {
+							if client.use_session(session_id).await.is_ok() {
 								prompt = format!("{namespace}/{database} ({session_id})> ");
 							} else {
 								prompt = format!("{namespace}/{database}> ");
@@ -265,7 +265,7 @@ pub async fn init(
 					}
 					// or session can be set
 					else if let Some(ref session_id) = session_id {
-						if client.set_session(session_id).await.is_ok() {
+						if client.use_session(session_id).await.is_ok() {
 							prompt = format!("({session_id})> ");
 						}
 					}

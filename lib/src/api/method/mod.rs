@@ -299,11 +299,11 @@ where
 	/// # #[tokio::main]
 	/// # async fn main() -> surrealdb::Result<()> {
 	/// # let db = surrealdb::engine::any::connect("mem://").await?;
-	/// db.set_session("database").await?;
+	/// db.use_session("database").await?;
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn set_session(&self, session: impl Into<String>) -> Use<C> {
+	pub fn use_session(&self, session: impl Into<String>) -> Use<C> {
 		Use {
 			client: Cow::Borrowed(self),
 			ns: None,
